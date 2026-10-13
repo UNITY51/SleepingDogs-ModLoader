@@ -1,52 +1,82 @@
 # Sleeping Dogs ModLoader
 
-Portable-менеджер модов для **Sleeping Dogs: Definitive Edition** поверх [SDmodding/FileRedirector](https://github.com/SDmodding/FileRedirector).
 
-* Один exe, без установки, данные лежат в `Data/` рядом с программой.
-* Включение/выключение модов переключателем; оригинальные файлы игры сохраняются и возвращаются.
-* Свой формат `.sdmod` (zip + `mod.json`), также принимает обычные `.zip` (в том числе сжатые LZMA, как делает 7-Zip) — см. [docs/FORMAT.md](docs/FORMAT.md).
-* Автопоиск игры в Steam; проверка FileRedirector и **автоматическая установка**, если его нет.
-* Обнаружение конфликтов между модами, drag&drop, поиск, создание `.sdmod` из папки, экспорт.
-* Интерфейс и сообщения об ошибках на английском (по умолчанию) и русском: кнопка 🌐 в правом верхнем углу, выбор запоминается.
-* Кнопка «Запустить игру» (exe определяется автоматически, при неоднозначности программа спросит и запомнит).
-* ПКМ по моду: удалить, экспортировать, открыть папку. Стрелка ▾ рядом с запуском: выбор exe (например, `sdhdship_debug.exe` для создателей модов).
-* Архивы разбираются умно: `Characters_New`, `RedirectorData` или просто файлы без папок — всё попадёт куда нужно.
-* Иконка окна берётся из установленной игры.
+A portable mod manager for **Sleeping Dogs: Definitive Edition**, built on top of [SDmodding/FileRedirector](https://github.com/SDmodding/FileRedirector). Switch mods on and off with one click, without ever touching the game archives.
 
-## Иконка
+## Features
 
-В репозитории лежит нейтральная иконка-заглушка (`src/SDModLoader.App/Assets/app.ico`). Иконку игры в репозиторий не кладём (это чужой товарный знак), но для своей сборки её легко подставить:
+- **Portable.** A single `.exe`, no installation. All data lives in a `Data/` folder next to the program.
+- **One-click toggles.** Original game files are backed up when a mod overwrites them and restored automatically when you switch the mod off.
+- **Conflict detection.** If two mods change the same file, you are asked before anything is overwritten. Enabling and disabling mods in any order is safe.
+- **FileRedirector check and auto-install.** The program verifies that FileRedirector is present and can download and install it for you.
+- **Game detection.** Finds the game through Steam automatically.
+- **Launch button.** Starts the game right from the program. The arrow next to it lets you pick another executable, for example `sdhdship_debug.exe` (handy for mod authors).
+- **Mod authoring tools.** Create a `.sdmod` from a folder, export mods, open a mod's folder.
+- **Convenient UI.** Drag & drop, search, right-click menu (delete / export / open folder), mod previews.
+
+## Quick start
+
+1. Download `SDModLoader.exe` from [Releases](../../releases) and run it.
+2. The game is found automatically. Otherwise, press **Browse…** and select the `SleepingDogsDefinitiveEdition` folder.
+3. If FileRedirector is missing, press **Install automatically**.
+4. Drag a `.sdmod` or `.zip` mod into the window and flip its switch.
+5. Press **Launch game**.
+
+> If the game is installed in `Program Files`, run ModLoader as administrator so it can write to the game folder.
+> FileRedirector may require a specific game executable version; see the [SDmodding](https://github.com/SDmodding) organization page for details.
+
+## Mod format in short
+
+A `.sdmod` is a regular zip archive:
 
 ```
-powershell -ExecutionPolicy Bypass -File make-icon.ps1 "D:\Steam\steamapps\common\SleepingDogsDefinitiveEdition\SDHDShip.exe"
+my-outfit.sdmod
+├── mod.json                  # optional metadata (name, author, version…)
+├── preview.png               # optional preview image
+└── RedirectorData/
+    └── Characters_New/
+        ├── Shirt.perm.bin
+        └── Shirt.temp.bin
+```
+
+Every `*.perm.bin` needs a matching `*.temp.bin` (it may be empty), and ModLoader warns you if one is missing. The full specification is in [docs/FORMAT.md](docs/FORMAT.md).
+
+## Building from source
+
+Requires Windows and the [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0).
+
+```
+publish.cmd                                       # produces dist\SDModLoader.exe
+dotnet run --project tests/SDModLoader.SelfTest   # core tests (also run on Linux/macOS)
+```
+
+### Custom icon
+
+The repository contains a neutral placeholder icon (`src/SDModLoader.App/Assets/app.ico`). The game's own icon is not included because it is a trademark of its owners, but you can use it for your own build:
+
+```
+powershell -ExecutionPolicy Bypass -File make-icon.ps1 "C:\path\to\SleepingDogsDefinitiveEdition\SDHDShip.exe"
 publish.cmd
 ```
-(укажите реальное имя exe игры). Иконка окна и панели задач и так подтягивается из exe игры во время работы.
 
-## Использование
+(Use the real name of the game executable.)
 
-1. Скачайте `SDModLoader.exe` из Releases и запустите.
-2. Игра ищется автоматически (иначе «Обзор…»). Если FileRedirector не найден — нажмите «Установить автоматически».
-3. Перетащите `.sdmod`/`.zip` в окно и включите нужные моды переключателем.
+## Project structure
 
-> Если игра стоит в `Program Files`, запустите ModLoader от администратора.
-> FileRedirector может требовать определённую версию exe игры — см. README организации [SDmodding](https://github.com/SDmodding).
-
-## Сборка
-
-Нужен [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) и Windows.
-
-```
-publish.cmd                                       # -> dist\SDModLoader.exe
-dotnet run --project tests/SDModLoader.SelfTest   # тесты ядра (работают и на Linux/macOS)
-```
-
-## Архитектура
-
-| Проект | Назначение |
+| Project | Purpose |
 |---|---|
-| `SDModLoader.Core` (net8.0) | Формат, библиотека модов, установщик с учётом владения файлами и бэкапами, поиск игры, FileRedirector. Без UI-зависимостей. |
-| `SDModLoader.App` (WPF) | GUI. |
-| `SDModLoader.SelfTest` | Консольные тесты ядра без внешних пакетов. |
+| `SDModLoader.Core` (net8.0) | Mod format, library, installer with file-ownership tracking and backups, game detection, FileRedirector service, LZMA zip support. No UI dependencies. |
+| `SDModLoader.App` (WPF) | The graphical interface. |
+| `SDModLoader.SelfTest` | Console tests for the core, no external packages needed. |
 
-Лицензия: MIT.
+## Contributing
+
+Bug reports and pull requests are welcome. When reporting a problem, please include the program version, the exact error text, and the mod archive layout if it is related to a specific mod.
+
+## License
+
+[MIT](LICENSE)
+
+## Disclaimer
+
+This is an unofficial project. It is not affiliated with the game's developers or publishers, or with the SDmodding team. *Sleeping Dogs* and related names belong to their respective owners. No game files are included in this repository. Back up your save files before installing mods.
