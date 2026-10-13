@@ -1,0 +1,183 @@
+<Window x:Class="SDModLoader.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:SDModLoader.App"
+        Title="{Binding [AppTitle], Source={x:Static local:Loc.Instance}, Mode=OneWay}"
+        Width="1000" Height="660" MinWidth="880" MinHeight="540"
+        Background="{StaticResource Bg}" Foreground="{StaticResource Fg}"
+        AllowDrop="True" Drop="OnDrop" WindowStartupLocation="CenterScreen">
+    <Grid Margin="14">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Путь к игре + язык -->
+        <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="{Binding [GameFolder], Source={x:Static local:Loc.Instance}, Mode=OneWay}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+            <TextBox Grid.Column="1" Text="{Binding GameDir, UpdateSourceTrigger=LostFocus}" LostFocus="OnGameDirEdited"/>
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="10,0,0,0">
+                <Button Content="{Binding [Browse], Source={x:Static local:Loc.Instance}, Mode=OneWay}" Click="OnBrowseGame"/>
+                <Button Content="{Binding [FindSteam], Source={x:Static local:Loc.Instance}, Mode=OneWay}" Click="OnAutoDetect"/>
+            </StackPanel>
+            <Button Grid.Column="3" Content="🌐 " Click="OnSwitchLanguage" Margin="6,0,0,0" MinWidth="90">
+                <Button.ContentTemplate>
+                    <DataTemplate>
+                        <TextBlock>
+                            <Run Text="🌐 "/><Run Text="{Binding [LangButton], Source={x:Static local:Loc.Instance}, Mode=OneWay}"/>
+                        </TextBlock>
+                    </DataTemplate>
+                </Button.ContentTemplate>
+            </Button>
+        </Grid>
+
+        <!-- Статус FileRedirector -->
+        <Border Grid.Row="1" Margin="0,10,0,10" Padding="12,8" CornerRadius="6">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Background" Value="#3A3217"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding RedirectorLevel}" Value="ok"><Setter Property="Background" Value="#16341F"/></DataTrigger>
+                        <DataTrigger Binding="{Binding RedirectorLevel}" Value="bad"><Setter Property="Background" Value="#43211F"/></DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock FontWeight="SemiBold" Text="{Binding [RdTitle], Source={x:Static local:Loc.Instance}, Mode=OneWay}"/>
+                    <TextBlock Text="{Binding RedirectorMessage}" Foreground="{StaticResource Muted}" TextWrapping="Wrap"/>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Content="{Binding [InstallAuto], Source={x:Static local:Loc.Instance}, Mode=OneWay}" Click="OnInstallRedirector"
+                            IsEnabled="{Binding CanInstallRedirector}"
+                            Background="#FFC857" Foreground="Black" BorderBrush="#E0A93B" FontWeight="SemiBold"/>
+                    <Button Content="{Binding [Recheck], Source={x:Static local:Loc.Instance}, Mode=OneWay}" Click="OnRecheck"/>
+                    <Button Content="GitHub" Click="OnOpenRedirectorRepo" Margin="0"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Список модов + детали -->
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="1.3*"/><ColumnDefinition Width="10"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+
+            <DockPanel>
+                <TextBox DockPanel.Dock="Top" Margin="0,0,0,8" Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}"
+                         ToolTip="{Binding [SearchTip], Source={x:Static local:Loc.Instance}, Mode=OneWay}"/>
+                <Border Background="{StaticResource Panel}" CornerRadius="6">
+                    <Grid>
+                        <ListBox ItemsSource="{Binding ModsView}" SelectedItem="{Binding Selected}" Background="Transparent"
+                                 BorderThickness="0" HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                 Foreground="{StaticResource Fg}">
+                            <ListBox.ItemContainerStyle>
+                                <Style TargetType="ListBoxItem">
+                                    <Setter Property="Foreground" Value="{StaticResource Fg}"/>
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="ListBoxItem">
+                                                <Border x:Name="Bd" Background="Transparent" CornerRadius="4" Margin="2,1">
+                                                    <ContentPresenter/>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#262B35"/></Trigger>
+                                                    <Trigger Property="IsSelected" Value="True"><Setter TargetName="Bd" Property="Background" Value="#303644"/></Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </ListBox.ItemContainerStyle>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="6,6" Background="Transparent" PreviewMouseRightButtonDown="OnItemRightClick">
+                                        <Grid.ContextMenu>
+                                            <ContextMenu>
+                                                <MenuItem Header="{Binding [Delete], Source={x:Static local:Loc.Instance}, Mode=OneWay}" Click="OnDeleteMenu"/>
+                                                <MenuItem Header="{Binding [Export], Source={x:Static local:Loc.Instance}, Mode=OneWay}" Click="OnExport"/>
+                                                <MenuItem Header="{Binding [OpenModFolder], Source={x:Static local:Loc.Instance}, Mode=OneWay}" Click="OnOpenModFolder"/>
+                                            </ContextMenu>
+                                        </Grid.ContextMenu>
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Name}" Foreground="{StaticResource Fg}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Foreground="{StaticResource Muted}" FontSize="11">
+                                                <Run Text="{Binding [Version], Source={x:Static local:Loc.Instance}, Mode=OneWay}"/><Run Text="{Binding Version, Mode=OneWay}"/><Run Text="  ·  "/><Run Text="{Binding Author, Mode=OneWay}"/><Run Text="{Binding [FilesCount], Source={x:Static local:Loc.Instance}, Mode=OneWay}"/><Run Text="{Binding FileCount, Mode=OneWay}"/>
+                                            </TextBlock>
+                                        </StackPanel>
+                                        <CheckBox Grid.Column="1" Style="{StaticResource Toggle}" VerticalAlignment="Center"
+                                                  IsChecked="{Binding IsEnabled, Mode=TwoWay}" Click="OnToggleClick"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                        <TextBlock Text="{Binding [EmptyList], Source={x:Static local:Loc.Instance}, Mode=OneWay}"
+                                   Foreground="{StaticResource Muted}" TextAlignment="Center" VerticalAlignment="Center" HorizontalAlignment="Center"
+                                   IsHitTestVisible="False">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Mods.Count}" Value="0"><Setter Property="Visibility" Value="Visible"/></DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Grid>
+                </Border>
+            </DockPanel>
+
+            <Border Grid.Column="2" Background="{StaticResource Panel}" CornerRadius="6" Padding="14" DataContext="{Binding Selected}">
+                <Grid>
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Setter Property="Visibility" Value="Visible"/>
+                            <Style.Triggers><DataTrigger Binding="{Binding}" Value="{x:Null}"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers>
+                        </Style>
+                    </Grid.Style>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <Image Source="{Binding Preview}" MaxHeight="170" Stretch="Uniform" Margin="0,0,0,10"/>
+                    <StackPanel Grid.Row="1">
+                        <TextBlock Text="{Binding Name}" FontSize="18" FontWeight="Bold" TextWrapping="Wrap"/>
+                        <TextBlock Foreground="{StaticResource Muted}" Margin="0,2,0,8">
+                            <Run Text="{Binding Version, Mode=OneWay}"/><Run Text="{Binding [AuthorLabel], Source={x:Static local:Loc.Instance}, Mode=OneWay}"/><Run Text="{Binding Author, Mode=OneWay}"/>
+                        </TextBlock>
+                    </StackPanel>
+                    <TextBlock Grid.Row="2" Text="{Binding Description}" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                    <TextBox Grid.Row="3" Text="{Binding FilesText, Mode=OneWay}" IsReadOnly="True" FontFamily="Consolas" FontSize="11"
+                             VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" ToolTip="{Binding [FilesTip], Source={x:Static local:Loc.Instance}, Mode=OneWay}"/>
+                    <StackPanel Grid.Row="4" Orientation="Horizontal" Margin="0,10,0,0">
+                        <Button Content="{Binding [Export], Source={x:Static local:Loc.Instance}, Mode=OneWay}" Click="OnExport"/>
+                        <Button Content="{Binding [Delete], Source={x:Static local:Loc.Instance}, Mode=OneWay}" Click="OnDelete" Margin="0"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- Нижняя панель -->
+        <Grid Grid.Row="3" Margin="0,12,0,0">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+            <StackPanel Orientation="Horizontal" IsEnabled="{Binding IsIdle}">
+                <Button Content="{Binding [AddMod], Source={x:Static local:Loc.Instance}, Mode=OneWay}" Click="OnAddMod" Background="{StaticResource Accent}"/>
+                <Button Content="{Binding [CreateMod], Source={x:Static local:Loc.Instance}, Mode=OneWay}" Click="OnCreateMod"/>
+                <Button Content="{Binding [DisableAll], Source={x:Static local:Loc.Instance}, Mode=OneWay}" Click="OnDisableAll"/>
+                <Button Content="{Binding [BtnGameFolder], Source={x:Static local:Loc.Instance}, Mode=OneWay}" Click="OnOpenGame"/>
+                <Button Content="{Binding [BtnModsFolder], Source={x:Static local:Loc.Instance}, Mode=OneWay}" Click="OnOpenMods"/>
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                <Button Content="{Binding [Play], Source={x:Static local:Loc.Instance}, Mode=OneWay}" Click="OnPlay" Margin="0,0,2,0" Padding="22,6" FontWeight="Bold"
+                        Background="#2EA043" BorderBrush="#2EA043" IsEnabled="{Binding HasGame}" ToolTip="{Binding LaunchExeName}"/>
+                <Button Content="▾" Click="OnPlayMenu" Margin="0" Padding="10,6" FontWeight="Bold"
+                        Background="#2EA043" BorderBrush="#2EA043" IsEnabled="{Binding HasGame}"
+                        ToolTip="{Binding [ExeChoose], Source={x:Static local:Loc.Instance}, Mode=OneWay}"/>
+            </StackPanel>
+            <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding Status}" Foreground="{StaticResource Muted}" Margin="0,10,0,0" TextTrimming="CharacterEllipsis"/>
+        </Grid>
+    </Grid>
+</Window>
